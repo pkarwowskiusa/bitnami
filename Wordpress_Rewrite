@@ -1,0 +1,89 @@
+#I have having issues with setting up ReWrite for my company consulting website using Wordpress on Bitnami @ AWS but I finally figured it out.
+
+Here's the vhost configuration file for the http, port 80 interface located:
+/opt/bitnami/apache/conf/vhosts/wordpress-vhost.conf
+
+<VirtualHost 127.0.0.1:80 _default_:80>
+  ServerName yourdomain.com
+  ServerAlias *
+  DocumentRoot /opt/bitnami/wordpress
+  <Directory "/opt/bitnami/wordpress">
+    Options -Indexes +FollowSymLinks -MultiViews
+    AllowOverride None
+    Require all granted
+    RewriteEngine On
+    # BEGIN WordPress
+    # https://wordpress.org/support/article/htaccess/#basic-wp
+    # BEGIN: Enable HTTP to HTTPS redirection
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} !^www\. [NC]
+    RewriteCond %{HTTP_HOST} !^localhost
+    RewriteCond %{HTTP_HOST} !^[0-9]+.[0-9]+.[0-9]+.[0-9]+(:[0-9]+)?$
+    RewriteCond %{REQUEST_URI} !^/\.well-known
+    RewriteRule ^/(.*) https://%{SERVER_NAME}/$1 [R,L]
+    # END: Enable HTTP to HTTPS redirection
+    # BEGIN: Enable non-www to www redirection
+    RewriteCond %{HTTP_HOST} !^www\. [NC]
+    RewriteCond %{HTTP_HOST} !^localhost
+    RewriteCond %{HTTP_HOST} !^[0-9]+.[0-9]+.[0-9]+.[0-9]+(:[0-9]+)?$
+    RewriteCond %{REQUEST_URI} !^/\.well-known
+    RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=permanent,L]
+    # END: Enable non-www to www redirection
+    # BEGIN WordPress fix for plugins and themes
+    # Certain WordPress plugins and themes do not properly link to PHP files because of symbolic links
+    # https://github.com/bitnami/bitnami-docker-wordpress-nginx/issues/43
+    RewriteRule ^bitnami/wordpress(/.*) $1 [L]
+    # END WordPress fix for plugins and themes
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+    # END WordPress
+  </Directory>
+  Include "/opt/bitnami/apache/conf/vhosts/htaccess/wordpress-htaccess.conf"
+</VirtualHost>
+
+Here's the vhost configuration file for the https, port 443 interface located:
+/opt/bitnami/apache/conf/vhosts/wordpress-https-vhost.conf
+
+<VirtualHost 127.0.0.1:443 _default_:443>
+  ServerName yourdomain.com
+  ServerAlias *
+  SSLEngine on
+  SSLCertificateFile "/opt/bitnami/apache/conf/bitnami/certs/server.crt"
+  SSLCertificateKeyFile "/opt/bitnami/apache/conf/bitnami/certs/server.key"
+  DocumentRoot /opt/bitnami/wordpress
+  <Directory "/opt/bitnami/wordpress">
+    Options -Indexes +FollowSymLinks -MultiViews
+    AllowOverride None
+    Require all granted
+    # BEGIN WordPress fix for plugins and themes
+    # Certain WordPress plugins and themes do not properly link to PHP files because of symbolic links
+    # https://github.com/bitnami/bitnami-docker-wordpress-nginx/issues/43
+    RewriteEngine On
+    RewriteRule ^bitnami/wordpress(/.*) $1 [L]
+    # END WordPress fix for plugins and themes
+    # BEGIN WordPress
+    # https://wordpress.org/support/article/htaccess/#basic-wp
+    # BEGIN: Enable non-www to www redirection
+    RewriteCond %{HTTP_HOST} !^www\. [NC]
+    RewriteCond %{HTTP_HOST} !^localhost
+    RewriteCond %{HTTP_HOST} !^[0-9]+.[0-9]+.[0-9]+.[0-9]+(:[0-9]+)?$
+    RewriteCond %{REQUEST_URI} !^/\.well-known
+    RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=permanent,L]
+    # END: Enable non-www to www redirection
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+    # END WordPress
+ </Directory>
+  Include "/opt/bitnami/apache/conf/vhosts/htaccess/wordpress-htaccess.conf"
+</VirtualHost>
+
+It is also important to not specify Alias for better SEO performance.
+If you see anything that's duplicated or unnecessary, feel free to drop a comment or message.
