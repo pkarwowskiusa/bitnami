@@ -1,4 +1,4 @@
-#I have having issues with setting up ReWrite for my company consulting website using Wordpress on Bitnami @ AWS but I finally figured it out.
+#I was having issues with setting up ReWrite for a company consulting website using Wordpress on Bitnami @ AWS to have the website redirect from non-www to www and from http to https, but I finally figured it out.
 
 Here's the vhost configuration file for the http, port 80 interface located:
 /opt/bitnami/apache/conf/vhosts/wordpress-vhost.conf
